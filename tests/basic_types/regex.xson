@@ -1,0 +1,10 @@
+<twonk>
+    <meta/>
+    <doc>
+        <regex name="regex">
+            <pattern>foobar</pattern>
+            <options></options>
+        </regex>
+    </doc>
+</twonk>
+

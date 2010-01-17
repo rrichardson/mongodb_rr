@@ -1,0 +1,11 @@
+<twonk>
+    <meta/>
+    <doc>
+        <array name="an_array">
+            <string name="0">x</string>
+            <string name="1">y</string>
+            <string name="2">z</string>
+        </array>
+    </doc>
+</twonk>
+
