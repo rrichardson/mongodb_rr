@@ -1,6 +1,7 @@
-module MongoClient
+module Data.MongoDB.MongoClient
   ( 
       MongoContext
+     ,launch
      ,query
      ,save
      ,update
@@ -13,7 +14,7 @@ module MongoClient
      ,msg
      ,quit
      ,runCommand
-     ,login
+     --,login
      ,debugResponse
   )
 where
@@ -24,7 +25,7 @@ import Network.Socket (sIsConnected)
 import System.IO
 import System.IO.Error (isEOFError)
 import System.Environment (getArgs)
-import Control.Exception (finally, catch, Exception(..), SomeException)
+import Control.Exception (finally, catch, Exception(..))
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Applicative
@@ -34,15 +35,16 @@ import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.ByteString as B
+import Data.Digest.OpenSSL.MD5
 import Data.Binary.Put
 import Data.Binary.Get
-import MongoWire
-import BSONValues (BSONValue(..))
+import Data.MongoDB.MongoWire
+import Data.MongoDB.BSON (BSONValue(..))
 
 type Port = Int
 type RequestId = Int
 type RequestMap = M.Map RequestId (Either MDbCallback (TChan MongoResponse))
-bstr = bstr
+bstr = C8.pack 
 
 hdr_size = 16
 
@@ -84,23 +86,24 @@ findOne ctx collection value selector cb = query ctx collection 0 1 value select
 runCommand :: MongoContext -> BSONValue -> IO(MongoResponse)
 runCommand ctx val = findOne ctx (bstr "admin.$cmd") val BNull Nothing
 
+{-
 login :: MongoContext -> B.ByteString -> B.ByteString -> Bool
 login ctx user pass = do
     result <- runCommand ctx $ BObject [( (bstr "getnonce"), BInt (1) )]
     case findItem (bstr "nonce") $ (head . rplDocuments) result of
         Nothing -> return False
         Just nonce -> do 
-            let digest = hex_md5 [toStr' nonce, user, hex_md5 [user, bstr ":mongo:", pass]]
+            let digest = md5 [toStr' nonce, user, md5 [user, bstr ":mongo:", pass]]
             res <- runCommand ctx $ BObject [ (bstr "authenticate", BInt 1)
                                              ,(bstr "user", BString user)
                                              ,(bstr "nonce", nonce)
                                              ,(bstr "key", digest )]
             findItem (bstr "ok") -- use next operations in maybe monad findItem / getInt
-                          
+-}             
 
 
 addUser :: MongoContext -> B.ByteString -> B.ByteString -> IO (MongoResponse)
-addUser ctx user pass = 
+addUser ctx user pass = undefined
 
 limit = undefined
 
@@ -134,26 +137,33 @@ newContext sock = do context <- MContext `liftM` newTChan `ap` return sock `ap` 
 
 hGetReply :: Handle -> IO (MongoHeader, MongoResponse)  
 hGetReply sock = do
-    !hdr <- liftM (runGet getHeader) $ L.hGet sock hdr_size
-    !resp <- liftM (runGet getReply) $ L.hGet sock ((messageLength hdr) - hdr_size)
+    putStrLn "in hGetReply"
+    hdr <- liftM (runGet getHeader) $ L.hGet sock hdr_size
+    putStrLn $ "got header" ++ (show hdr)
+    resp <- liftM (runGet getReply) $ L.hGet sock ((messageLength hdr) - hdr_size)
+    putStrLn $ "received response: " ++  (show resp)
     return (hdr, resp)
 
 spawn :: IO () -> IO ThreadId
 spawn act = do
     mainTID <- myThreadId
-    forkIO $ act -- `catch` \e -> throwTo mainTID (e :: SomeException)
+    forkIO $ act `catch` throwTo mainTID -- \e -> throwTo mainTID  (e :: SomeException)
 
 listenLoop :: IO () -> IO ()
 listenLoop = sequence_  . repeat
 
 cmdLoop :: MongoContext -> IO ()
 cmdLoop (Ctx ctx) = do
+    putStrLn "in cmdLoop"
     mctx <- atomically $ readTMVar ctx
     (command, rid) <- atomically $ readTChan (cmdChan mctx)
+    putStrLn $ "received command" ++ (show command)
+    hFlush stdout
     case command of 
       MQuit -> shutdown (Ctx ctx)
       otherwise -> do
           let str = runPut $ putRequest command rid 0 
+          L.putStrLn str
           B.hPutStr (ctxSocket mctx) ((C8.concat . L.toChunks) str)
           hFlush (ctxSocket mctx)
           cmdLoop (Ctx ctx)  
@@ -182,7 +192,8 @@ sendRequest ctx req Nothing = do
     mctx' <- withContext ctx (\mctx -> return mctx { reqMap = (M.insert (reqCounter mctx +1)  (Right newchan) (reqMap mctx)) , 
                                                      reqCounter = reqCounter mctx + 1 })
     atomically $ writeTChan (cmdChan mctx') (req, reqCounter mctx')
-    atomically $ readTChan newchan 
+    hFlush stdout
+    atomically $ readTChan newchan
 
 sendRequest ctx req (Just cb) = do
     mctx' <- withContext ctx (\mctx ->
@@ -220,4 +231,5 @@ withContext (Ctx var) act = do
     atomically $ putTMVar var inner'
     return inner'
 
-
+md5 :: [B.ByteString] -> B.ByteString
+md5 barray = C8.pack $ md5sum (B.concat barray)

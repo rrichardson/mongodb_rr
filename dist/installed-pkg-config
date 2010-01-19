@@ -1,0 +1,34 @@
+name: MongoDb
+version: 0.0.1
+license: BSD3
+copyright:
+maintainer: libraries@haskell.org
+stability:
+homepage:
+package-url:
+description: A client for accessing the MongoDB Database via TCP. It provides a
+             simple interface that allows either synchronous or asynchronous calls
+             to a MongoDB instance.
+category: Database
+author: Rick Richardson
+exposed: True
+exposed-modules: Data.MongoDB.MongoClient Data.MongoDB.MongoWire
+                 Data.MongoDB.BSON
+hidden-modules:
+import-dirs: /home/rick/.cabal/lib/MongoDb-0.0.1/ghc-6.10.4
+library-dirs: /home/rick/.cabal/lib/MongoDb-0.0.1/ghc-6.10.4
+hs-libraries: HSMongoDb-0.0.1
+extra-libraries:
+extra-ghci-libraries:
+include-dirs:
+includes:
+depends: base-3.0.3.1 binary-0.5.0.2 bytestring-0.9.1.4
+         containers-0.2.0.1 datetime-0.1 nano-md5-0.1.2 network-2.2.1.4
+         stm-2.1.1.2
+hugs-options:
+cc-options:
+ld-options:
+framework-dirs:
+frameworks:
+haddock-interfaces: /home/rick/.cabal/share/doc/MongoDb-0.0.1/html/MongoDb.haddock
+haddock-html: /home/rick/.cabal/share/doc/MongoDb-0.0.1/html

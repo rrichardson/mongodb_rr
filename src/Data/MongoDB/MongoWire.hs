@@ -1,4 +1,4 @@
-module MongoWire
+module Data.MongoDB.MongoWire
 where
 
 import Prelude hiding (length, readFile)
@@ -13,7 +13,7 @@ import Foreign.C.Types
 import Unsafe.Coerce
 import qualified Data.ByteString.Lazy as L
 import Debug.Trace
-import BSONValues
+import Data.MongoDB.BSON
 
 
 data MongoRequest = MDbUpdate { updCollectionName :: ByteString

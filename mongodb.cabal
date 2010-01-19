@@ -1,0 +1,27 @@
+name:     MongoDb	
+version:	0.0.1
+license:	BSD3
+license-file:	LICENSE
+author:	  Rick Richardson	
+maintainer:	libraries@haskell.org
+category: Database 	
+homepage: 	
+synopsis:	 Client for the MongoDB Database
+description:
+  A client for accessing the MongoDB Database via TCP. It provides a 
+  simple interface that allows either synchronous or asynchronous calls 
+  to a MongoDB instance.
+build-type: Simple
+cabal-version: >=1.2
+
+
+flag split-base
+
+library
+  hs-source-dirs:  src
+  exposed-modules:
+    Data.MongoDB.MongoClient
+    Data.MongoDB.MongoWire
+    Data.MongoDB.BSON
+  build-depends:	base >= 3 && < 4, binary >= 0.5, bytestring, datetime, nano-md5, containers, stm, network
+  extensions:	BangPatterns
